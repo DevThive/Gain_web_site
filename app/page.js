@@ -57,6 +57,7 @@ export default function Home() {
 
       if (Array.isArray(response.data)) {
         setChatMessages(response.data);
+        scrollToBottom(); // 메시지를 업데이트 할 때마다 스크롤
       } else {
         console.error("받은 데이터가 배열이 아닙니다:", response.data);
         setChatMessages([]);
@@ -67,18 +68,41 @@ export default function Home() {
     }
   };
 
+  const fetchNewMessages = async () => {
+    if (chatMessages.length === 0) return; // 메시지가 없으면 실행하지 않음
+  
+    const lastMessageTimestamp = chatMessages[chatMessages.length - 1].timestamp;
+  
+    try {
+      const encodedCategory = encodeURIComponent(selectedCategory);
+      const response = await axios.get(
+        `http://localhost:4000/chat/${encodedCategory}/new?lastMessageTimestamp=${lastMessageTimestamp}`
+      );
+  
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        setChatMessages((prevMessages) => [
+          ...prevMessages,
+          ...response.data,
+        ]);
+        scrollToBottom(); // 새로운 메시지가 추가된 후 스크롤
+      }
+    } catch (error) {
+      console.error("새로운 메시지 불러오기 실패:", error);
+    }
+  };
+  
+  // scrollToBottom 함수는 위와 같이 유지
+  
+
   const handleSendMessage = async () => {
     if (!message) return;
 
     try {
-      const response = await axios.post(
-        "http://localhost:4000/chat/send-message",
-        {
-          category: selectedCategory,
-          content: message,
-          user: nickname,
-        }
-      );
+      await axios.post("http://localhost:4000/chat/send-message", {
+        category: selectedCategory,
+        content: message,
+        user: nickname,
+      });
 
       setChatMessages((prevMessages) => [
         ...prevMessages,
@@ -103,28 +127,28 @@ export default function Home() {
 
   const scrollToBottom = () => {
     if (chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight + 30; // 10픽셀 추가
     }
   };
+  
 
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
+    fetchMessages(); // 처음 메시지를 불러옵니다.
   }, [selectedCategory]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchNewMessages, 3000); // 3초마다 새로운 메시지 확인
+    return () => clearInterval(interval);
+  }, [selectedCategory, chatMessages]); // chatMessages를 dependency에 추가
 
   useEffect(() => {
     const randomNickname = generateRandomNickname();
     setNickname(randomNickname);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [chatMessages]);
-
   return (
     <div className="flex">
-      {isSidebarOpen && <Sidebar onSelect={setSelectedCategory} />}
+      {isSidebarOpen && <Sidebar onSelect={setSelectedCategory} onClose={toggleSidebar} />}
       <div className="flex-grow bg-gray-100 min-h-screen flex flex-col">
         <header className="bg-white shadow p-4 flex items-center">
           <button onClick={toggleSidebar} className="btn btn-primary">
@@ -152,8 +176,7 @@ export default function Home() {
                         {msg.content}
                       </div>
                       <p className="text-gray-500 text-xs">
-                        {msg.user} - {formatTimeAgo(msg.timestamp)}{" "}
-                        {/* 형식 변환 */}
+                        {msg.user} - {formatTimeAgo(msg.timestamp)} 
                       </p>
                     </div>
                   </div>
@@ -183,4 +206,6 @@ export default function Home() {
       </div>
     </div>
   );
+  
+
 }
