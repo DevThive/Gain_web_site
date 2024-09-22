@@ -127,85 +127,89 @@ export default function Home() {
 
   const scrollToBottom = () => {
     if (chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight + 30; // 10픽셀 추가
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
   };
   
-
   useEffect(() => {
     fetchMessages(); // 처음 메시지를 불러옵니다.
   }, [selectedCategory]);
-
+  
   useEffect(() => {
     const interval = setInterval(fetchNewMessages, 3000); // 3초마다 새로운 메시지 확인
     return () => clearInterval(interval);
   }, [selectedCategory, chatMessages]); // chatMessages를 dependency에 추가
-
+  
   useEffect(() => {
     const randomNickname = generateRandomNickname();
     setNickname(randomNickname);
   }, []);
+  
+  useEffect(() => {
+    scrollToBottom(); // chatMessages가 변경될 때마다 스크롤
+  }, [chatMessages]);
 
   return (
-    <div className="flex">
-      {isSidebarOpen && <Sidebar onSelect={setSelectedCategory} onClose={toggleSidebar} />}
-      <div className="flex-grow bg-gray-100 min-h-screen flex flex-col">
-        <header className="bg-white shadow p-4 flex items-center">
-          <button onClick={toggleSidebar} className="btn btn-primary">
-            사이드바 열기
-          </button>
-          <h2 className="text-lg font-bold ml-4">{selectedCategory} 채팅방</h2>
-        </header>
-        <div className="flex-grow p-4">
-          <div className="bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-md mx-auto flex-grow">
-            <div
-              className="p-4 h-96 overflow-y-scroll"
-              id="chat-box"
-              ref={chatBoxRef}
-            >
-              {chatMessages.map((msg, index) => (
-                <div key={index} className="mb-4">
-                  <div className="flex items-start">
-                    <div className="avatar">
-                      <div className="w-10 rounded-full">
-                        <img src="https://via.placeholder.com/150" alt="User" />
-                      </div>
-                    </div>
-                    <div className="ml-3">
-                      <div className="bg-blue-500 text-white p-2 rounded-lg">
-                        {msg.content}
-                      </div>
-                      <p className="text-gray-500 text-xs">
-                        {msg.user} - {formatTimeAgo(msg.timestamp)} 
-                      </p>
+    <div className="flex flex-col h-screen">
+    {isSidebarOpen && <Sidebar onSelect={setSelectedCategory} onClose={toggleSidebar} />}
+    <div className="flex-grow bg-gray-100 flex flex-col">
+      <header className="bg-white shadow p-4 flex items-center">
+        <button onClick={toggleSidebar} className="btn btn-primary">
+          사이드바 열기
+        </button>
+        <h2 className="text-lg font-bold ml-4">{selectedCategory} 채팅방</h2>
+      </header>
+      <div className="flex-grow p-4 flex flex-col">
+        <div className="bg-white shadow-lg rounded-lg flex-grow flex flex-col">
+          <div
+            className="p-4 overflow-y-auto flex-grow"
+            id="chat-box"
+            ref={chatBoxRef}
+            style={{ maxHeight: 'calc(100vh - 200px)' }} // header와 입력 부분을 고려하여 높이 조절
+          >
+            {chatMessages.map((msg, index) => (
+              <div key={index} className="mb-4">
+                <div className="flex items-start">
+                  <div className="avatar">
+                    <div className="w-10 rounded-full">
+                      <img src="https://via.placeholder.com/150" alt="User" />
                     </div>
                   </div>
+                  <div className="ml-3">
+                    <div className="bg-blue-500 text-white p-2 rounded-lg">
+                      {msg.content}
+                    </div>
+                    <p className="text-gray-500 text-xs">
+                      {msg.user} - {formatTimeAgo(msg.timestamp)} 
+                    </p>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div className="p-4 border-t">
-              <div className="flex">
-                <input
-                  type="text"
-                  placeholder="메시지를 입력하세요..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyDown} // 엔터 키 이벤트 핸들러 추가
-                  className="input input-bordered flex-grow"
-                />
-                <button
-                  className="btn btn-primary ml-2"
-                  onClick={handleSendMessage}
-                >
-                  전송
-                </button>
               </div>
+            ))}
+          </div>
+          <div className="border-t p-4">
+            <div className="flex">
+              <input
+                type="text"
+                placeholder="메시지를 입력하세요..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown} // 엔터 키 이벤트 핸들러 추가
+                className="input input-bordered flex-grow"
+              />
+              <button
+                className="btn btn-primary ml-2"
+                onClick={handleSendMessage}
+              >
+                전송
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+  
   );
   
-
 }
